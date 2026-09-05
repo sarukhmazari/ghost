@@ -1,0 +1,27 @@
+{
+  "name": "zoxerminibot",
+  "version": "1.0.0",
+  "description": "Ultra-Fast Lightweight Mini WhatsApp Bot",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "keywords": [
+    "whatsapp-bot",
+    "baileys",
+    "mini-bot"
+  ],
+  "author": "Sarukh Zoxer",
+  "license": "ISC",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "@hapi/boom": "^10.0.1",
+    "awesome-phonenumber": "^5.9.0",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.4.5",
+    "pino": "^8.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
