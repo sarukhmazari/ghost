@@ -23,11 +23,11 @@ async function pingCommand(sock, chatId, message, startTime) {
         const uptimeFormatted = formatTime(process.uptime());
 
         const botInfo = `
-┏━━〔 ⚡ ${settings.botName} 〕━━┓
-┃ 🚀 Latency  : ${latency} ms
-┃ ⏱️ Uptime   : ${uptimeFormatted}
-┃ ⚡ Speed    : Ultra-Fast (Mini)
-┗━━━━━━━━━━━━━━━━━━━┛`.trim();
+┏━━〔 ⚡ 𝗚𝗛𝗢𝗦𝗧 𝗠𝗕𝗢𝗧 〕━━┓
+┃ 🚀 *Latency:* ${latency} ms
+┃ ⏱️ *Uptime:* ${uptimeFormatted}
+┃ ⚡ *Status:* Online & Active
+┗━━━━━━━━━━━━━━━━━━┛`.trim();
 
         await sock.sendMessage(chatId, { text: botInfo }, { quoted: message });
 

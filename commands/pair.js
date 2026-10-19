@@ -29,7 +29,7 @@ async function pairCommand(sock, chatId, senderId, message, args) {
         const result = await requestPairingCodeForNumber(cleanNumber);
 
         const responseText = `
-╭━━━〔 🔑 𝗭𝗢𝗫𝗘𝗥 𝗣𝗔𝗜𝗥𝗜𝗡𝗚 〕━━━╮
+╭━━━〔 🔑 𝗚𝗛𝗢𝗦𝗧 𝗣𝗔𝗜𝗥𝗜𝗡𝗚 〕━━━╮
 
 📱 *Target Number:* +${result.phone}
 🔑 *Pairing Code:* \`${result.code}\`

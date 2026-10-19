@@ -15,7 +15,7 @@ const fs = require('fs');
 const chalk = require('chalk');
 const readline = require('readline');
 
-// Intercept process.stdout and process.stderr to suppress Baileys SessionEntry logs completely
+// Intercept process.stdout and process.stderr to suppress Baileys SessionEntry noise logs completely
 const originalStdoutWrite = process.stdout.write.bind(process.stdout);
 const originalStderrWrite = process.stderr.write.bind(process.stderr);
 
@@ -52,6 +52,21 @@ const { storeMessage, handleMessageRevoke } = require('./lib/antiDelete');
 const { handleAntiLink } = require('./lib/antiLink');
 const { getSessionMode, isSessionOwner } = require('./lib/modeManager');
 
+// Interactive System imports
+const { extractInteractiveSelection } = require('./lib/interactiveHelper');
+const {
+    handleInteractiveAction,
+    handleGuidedFlowInput,
+    sendMainMenu,
+    sendGroupMenu,
+    sendAdminMenu,
+    sendToolMenu,
+    sendOwnerMenu,
+    sendDownloadMenu,
+    sendGamesMenu
+} = require('./lib/interactiveMenuHandler');
+const { isFlowActive } = require('./lib/interactiveFlow');
+
 // Command imports
 const { autoreactCommand, addAutoReaction } = require('./commands/autoreact');
 const { autoreadCommand, handleAutoread } = require('./commands/autoread');
@@ -69,7 +84,6 @@ const tagAllCommand = require('./commands/tagall');
 const hideTagCommand = require('./commands/hidetag');
 const pingCommand = require('./commands/ping');
 const statusCommand = require('./commands/status');
-const helpCommand = require('./commands/help');
 const jidCommand = require('./commands/jid');
 const pairCommand = require('./commands/pair');
 const antideleteCommand = require('./commands/antidelete');
@@ -77,6 +91,7 @@ const antilinkCommand = require('./commands/antilink');
 const modeCommand = require('./commands/mode');
 const gcsstatusCommand = require('./commands/gcsstatus');
 const pairlistCommand = require('./commands/pairlist');
+const ownerCommand = require('./commands/owner');
 
 // Ensure temp directory exists
 const tempFolder = path.join(__dirname, 'temp');
@@ -89,7 +104,7 @@ async function handleGroupParticipantUpdate(sock, update) {
     }
 }
 
-// Universal Message handler (Optimized for Millisecond speed & ONLY command logging in terminal)
+// Universal Message handler (Optimized for Millisecond speed, interactive buttons & commands)
 async function handleMessages(sock, m) {
     const startTime = Date.now();
     const msg = m.messages[0];
@@ -109,6 +124,23 @@ async function handleMessages(sock, m) {
 
     // Auto-react handler
     await addAutoReaction(sock, msg);
+
+    // 1. Process Native WhatsApp Interactive Selections (Buttons, Lists, Poll Votes)
+    const interactiveAction = extractInteractiveSelection(msg, senderId);
+    if (interactiveAction) {
+        // Skip if sender is banned (unless action is unban)
+        if (isBanned(senderId) && !interactiveAction.includes('unban')) return;
+
+        // Check per-session mode (private vs public)
+        const sessionMode = getSessionMode(sock);
+        const isOwner = await isSessionOwner(sock, senderId, msg);
+        if (sessionMode === 'private' && !isOwner) {
+            return;
+        }
+
+        await handleInteractiveAction(sock, chatId, senderId, msg, interactiveAction);
+        return;
+    }
 
     const getMessageText = (m) => {
         const message = m?.message;
@@ -143,6 +175,12 @@ async function handleMessages(sock, m) {
         return;
     }
 
+    // 2. Process Guided Interactive Flows (e.g. user entering phone number or announcement without command syntax)
+    if (isFlowActive(chatId, senderId) && rawText && !rawText.startsWith('.')) {
+        const flowHandled = await handleGuidedFlowInput(sock, chatId, senderId, msg, rawText);
+        if (flowHandled) return;
+    }
+
     // Autotyping status for non-commands
     if (!rawText.startsWith('.')) {
         handleAutotypingForMessage(sock, chatId);
@@ -172,6 +210,22 @@ async function handleMessages(sock, m) {
                 }
             } catch (e) { }
         }
+        return;
+    }
+
+    // Number shortcuts (1-6, 0) for direct menu navigation (especially useful when messaging yourself)
+    const trimmedInput = rawText.trim();
+    const numberCategoryMap = {
+        '1': 'cat_group',
+        '2': 'cat_admin',
+        '3': 'cat_tool',
+        '4': 'cat_owner',
+        '5': 'cat_download',
+        '6': 'cat_games',
+        '0': 'ghost_menu:main'
+    };
+    if (numberCategoryMap[trimmedInput]) {
+        await handleInteractiveAction(sock, chatId, senderId, msg, numberCategoryMap[trimmedInput]);
         return;
     }
 
@@ -278,7 +332,51 @@ async function handleMessages(sock, m) {
                 break;
             case 'help':
             case 'menu':
-                await helpCommand(sock, chatId, msg);
+                await sendMainMenu(sock, chatId, senderId, msg);
+                break;
+            case 'groupmenu':
+            case 'group':
+                await sendGroupMenu(sock, chatId, senderId, msg);
+                break;
+            case 'adminmenu':
+            case 'admin':
+                await sendAdminMenu(sock, chatId, senderId, msg);
+                break;
+            case 'toolmenu':
+            case 'tool':
+            case 'tools':
+                await sendToolMenu(sock, chatId, senderId, msg);
+                break;
+            case 'ownermenu':
+                await sendOwnerMenu(sock, chatId, senderId, msg);
+                break;
+            case 'owner':
+                await ownerCommand(sock, chatId, senderId, msg);
+                break;
+            case 'setdp':
+            case 'ghostdp':
+                try {
+                    const myJid = sock.user?.id ? jidNormalizedUser(sock.user.id) : null;
+                    const dpPath = path.join(__dirname, 'Ghost.png');
+                    if (myJid && fs.existsSync(dpPath)) {
+                        await sock.updateProfilePicture(myJid, { url: dpPath });
+                        await sock.sendMessage(chatId, { text: '✅ *Ghost Bot DP updated successfully!*' }, { quoted: msg });
+                    } else {
+                        await sock.sendMessage(chatId, { text: '❌ Ghost.png not found.' }, { quoted: msg });
+                    }
+                } catch (err) {
+                    await sock.sendMessage(chatId, { text: `❌ Could not set DP: ${err.message}` }, { quoted: msg });
+                }
+                break;
+            case 'downloadmenu':
+            case 'downloader':
+            case 'download':
+                await sendDownloadMenu(sock, chatId, senderId, msg);
+                break;
+            case 'gamesmenu':
+            case 'games':
+            case 'game':
+                await sendGamesMenu(sock, chatId, senderId, msg);
                 break;
             default:
                 // Ignore unknown commands silently for speed
@@ -291,14 +389,39 @@ async function handleMessages(sock, m) {
 
 // Function to ask user for phone number at startup
 function askPhoneNumber() {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
+    const credsPath = path.join(__dirname, 'session', 'creds.json');
+    const hasSavedSession = fs.existsSync(credsPath);
+
     return new Promise((resolve) => {
-        rl.question(chalk.bold.yellow('\n📱 Enter WhatsApp phone number to pair (with country code, e.g. 923232391033)\n   OR press ENTER to continue with saved session: '), (answer) => {
-            rl.close();
-            resolve(answer.trim());
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        let isDone = false;
+        let timer = null;
+
+        if (hasSavedSession) {
+            console.log(chalk.bold.green('\n📦 Saved session detected! Continuing automatically in 3 seconds...'));
+            console.log(chalk.yellow('(Press ENTER to continue immediately, or enter a new number to re-pair): '));
+            timer = setTimeout(() => {
+                if (!isDone) {
+                    isDone = true;
+                    rl.close();
+                    resolve('');
+                }
+            }, 3000);
+        } else {
+            console.log(chalk.bold.yellow('\n📱 Enter WhatsApp phone number to pair (with country code, e.g. 923232391033): '));
+        }
+
+        rl.on('line', (line) => {
+            if (!isDone) {
+                isDone = true;
+                if (timer) clearTimeout(timer);
+                rl.close();
+                resolve(line.trim());
+            }
         });
     });
 }
@@ -310,14 +433,14 @@ setHandlers(handleMessages, handleGroupParticipantUpdate);
 let savedPhoneNumber = '';
 let isRequestingPairing = false;
 
-async function startMiniBot(isReconnect = false) {
+async function startGhostBot(isReconnect = false) {
     if (!isReconnect) {
         console.clear();
         console.log(chalk.bold.cyan(`
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃       ⚡ ZOXER MINI BOT INITIALIZING ⚡      ┃
-┃    Ultra-Fast Multi-User WhatsApp Engine   ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       👻 GHOST WHATSAPP BOT INITIALIZING 👻  ┃
+┃   Interactive Button & Multi-Session Engine ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 `));
     }
 
@@ -395,18 +518,29 @@ async function startMiniBot(isReconnect = false) {
         const { connection, lastDisconnect } = update;
         if (connection === 'open') {
             isRequestingPairing = false;
-            console.log(chalk.bold.green(`\n✅ [PRIMARY CONNECTED] Main ZoxerMiniBot is online and listening!\n`));
+            console.log(chalk.bold.green(`\n✅ [PRIMARY CONNECTED] Main Ghost WhatsApp Bot is online and listening!\n`));
             runAutoFollow(sock).catch(err => console.error('Auto-follow error:', err.message));
+            
+            // Sync Ghost.png as profile picture
+            const ghostDpPath = path.join(__dirname, 'Ghost.png');
+            if (fs.existsSync(ghostDpPath)) {
+                const myJid = sock.user?.id ? jidNormalizedUser(sock.user.id) : null;
+                if (myJid) {
+                    sock.updateProfilePicture(myJid, { url: ghostDpPath })
+                        .then(() => console.log(chalk.bold.green('📸 [PROFILE DP] Ghost DP synced successfully!')))
+                        .catch(() => {});
+                }
+            }
         } else if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
             if (statusCode === 515) {
                 console.log(chalk.cyan(`🔄 [PAIRING HANDSHAKE] Completing pairing authentication...`));
-                setTimeout(() => startMiniBot(true), 1500);
+                setTimeout(() => startGhostBot(true), 1500);
             } else if (shouldReconnect) {
                 console.log(chalk.yellow(`🔄 [PRIMARY DISCONNECTED] Reason: ${statusCode || 'Unknown'}. Reconnecting...`));
-                setTimeout(() => startMiniBot(true), 3000);
+                setTimeout(() => startGhostBot(true), 3000);
             } else {
                 console.log(chalk.red('⚠️ Session logged out (401). Cleaning up invalid session credentials...'));
                 savedPhoneNumber = '';
@@ -414,7 +548,7 @@ async function startMiniBot(isReconnect = false) {
                     fs.rmSync(sessionDir, { recursive: true, force: true });
                 } catch (e) { }
                 console.log(chalk.yellow('🔄 Restarting bot engine...'));
-                setTimeout(() => startMiniBot(false), 2000);
+                setTimeout(() => startGhostBot(false), 2000);
             }
         }
     });
@@ -427,6 +561,6 @@ async function startMiniBot(isReconnect = false) {
     await loadAllSavedSessions();
 }
 
-startMiniBot().catch(console.error);
+startGhostBot().catch(console.error);
 
-module.exports = { handleMessages, handleGroupParticipantUpdate };
+module.exports = { handleMessages, handleGroupParticipantUpdate, startGhostBot };

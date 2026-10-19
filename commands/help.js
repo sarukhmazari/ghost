@@ -1,98 +1,95 @@
 const path = require('path');
 const fs = require('fs');
 const settings = require('../settings');
+const { sendMainMenu } = require('../lib/interactiveMenuHandler');
 
 async function helpCommand(sock, chatId, message) {
-    const helpText = `
-╭━━━〔 𝗭𝗢𝗫𝗘𝗥 𝗠𝗜𝗡𝗜 𝗕𝗢𝗧 〕━━━╮
+    const senderId = message.key.participant || (message.key.fromMe ? (sock.user?.id || chatId) : chatId);
 
-┏━━〔 ⚙️ 𝗔𝗨𝗧𝗢𝗠𝗔𝗧𝗜𝗢𝗡 〕
-┃
-┃  ◉ .autoreact <on/off>
-┃  ◉ .autoread <on/off>
-┃  ◉ .autotyping <on/off>
-┃  ◉ .antidelete <on/off>
-┃
-┗━━━━━━━━━━━━━━━━━━━━━━
+    try {
+        // Send the native interactive button & list menu
+        await sendMainMenu(sock, chatId, senderId, message);
+    } catch (interactiveError) {
+        console.error('Interactive menu error, falling back to text menu:', interactiveError);
 
-┏━━〔 👁️ 𝗠𝗘𝗗𝗜𝗔 & 𝗣𝗥𝗜𝗩𝗔𝗖𝗬 〕
-┃
-┃  ◉ .vv / .viewonce [public/private]
-┃  ◉ .dp [@user / reply]
-┃  ◉ ❤️ Secret View-Once Grab
-┃
-┗━━━━━━━━━━━━━━━━━━━━━━
+        const helpText = `
+┏━━〔 👻 𝗚𝗛𝗢𝗦𝗧 𝗠𝗕𝗢𝗧 〕━━┓
+┃ 📱 Owner : 923232391033
+┃ ⚡ Engine: Ghost Core
+┗━━━━━━━━━━━━━━━━━━━━┛
 
-┏━━〔 👥 𝗚𝗥𝗢𝗨𝗣 𝗠𝗔𝗡𝗔𝗚𝗘𝗠𝗘𝗡𝗧 〕
-┃
-┃  ◉ .tagall
-┃  ◉ .hidetag [message / reply]
-┃  ◉ .mute [minutes]
-┃  ◉ .unmute
-┃  ◉ .kick [@user / reply]
-┃  ◉ .antilink <on/off>
-┃
-┗━━━━━━━━━━━━━━━━━━━━━━
+🤖 *AUTOMATION*
+• .autoreact <on/off>
+• .autoread <on/off>
+• .autotyping <on/off>
+• .antidelete <on/off>
 
-┏━━〔 🛡️ 𝗔𝗗𝗠𝗜𝗡 & 𝗖𝗢𝗡𝗧𝗥𝗢𝗟 〕
-┃
-┃  ◉ .mode <private/public>
-┃  ◉ .adminlock <on/off>
-┃  ◉ .ban [@user / reply]
-┃  ◉ .unban [@user / reply]
-┃
-┗━━━━━━━━━━━━━━━━━━━━━━
+👥 *GROUP*
+• .tagall
+• .hidetag [text/reply]
+• .mute [minutes]
+• .unmute
+• .antilink <on/off>
+• .kick [@user]
 
-┏━━〔 📡 𝗦𝗬𝗦𝗧𝗘𝗠 〕
-┃
-┃  ◉ .pair <number>
-┃  ◉ .pairlist / .pairs
-┃  ◉ .unpair <number>
-┃  ◉ .ping
-┃  ◉ .status
-┃  ◉ .help
-┃
-┗━━━━━━━━━━━━━━━━━━━━━━
+🛡️ *ADMIN*
+• .mode <private/public>
+• .adminlock <on/off>
+• .ban [@user]
+• .unban [@user]
 
-╰━━━〔 ⚡ 𝗨𝗟𝗧𝗥𝗔-𝗙𝗔𝗦𝗧 〕━━━╯
-       𝗥𝗘𝗦𝗣𝗢𝗡𝗦𝗘 𝗘𝗡𝗚𝗜𝗡𝗘
-          𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗯𝘆 𝗭𝗢𝗫𝗘𝗥`.trim();
+📥 *MEDIA*
+• .vv / .viewonce
+• .dp [@user]
+• ❤️ (Reply to View-Once)
 
-    const menuImagePath = path.join(__dirname, '../ZoxerMini.png');
+👑 *SYSTEM & OWNER*
+• .owner (Contact 923232391033)
+• .pair <number>
+• .pairlist
+• .unpair <number>
+• .ping
+• .status
+• .jid`.trim();
 
-    const contextInfo = {
-        forwardingScore: 999,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: settings.newsletterJid || "120363404139113188@newsletter",
-            serverMessageId: 100,
-            newsletterName: "𝗭𝗢𝗫𝗘𝗥 𝗢𝗙𝗙𝗜𝗖𝗜𝗔🇱"
-        },
-        externalAdReply: {
-            title: "𝗭𝗢𝗫𝗘𝗥 𝗠𝗜𝗡𝗜 𝗕𝗢𝗧 𝗦𝗬𝗦𝗧𝗘𝗠",
-            body: "Click below to join our official channel",
-            thumbnailUrl: "https://files.catbox.moe/0v258l.jpg",
-            sourceUrl: settings.channelLink || "https://whatsapp.com/channel/0029VbBRITODzgTGQhZSFT3P",
-            mediaType: 1,
-            renderLargerThumbnail: false
+        const menuImagePath = path.join(__dirname, '../Ghost.png');
+        const fallbackImagePath = path.join(__dirname, '../ghost.jpg');
+        const finalImage = fs.existsSync(menuImagePath) ? menuImagePath : (fs.existsSync(fallbackImagePath) ? fallbackImagePath : null);
+
+        const contextInfo = {
+            forwardingScore: 999,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: settings.newsletterJid || "120363404139113188@newsletter",
+                serverMessageId: 100,
+                newsletterName: "👻 𝗚𝗛𝗢𝗦𝗧 𝗢𝗙𝗙𝗜𝗖𝗜𝗔🇱"
+            },
+            externalAdReply: {
+                title: "〔 👻 𝗚𝗛𝗢𝗦𝗧 𝗠𝗕𝗢𝗧 〕",
+                body: "Official Ghost MBot WhatsApp Bot",
+                thumbnailUrl: "https://files.catbox.moe/0v258l.jpg",
+                sourceUrl: settings.channelLink || "https://whatsapp.com/channel/0029VbBRITODzgTGQhZSFT3P",
+                mediaType: 1,
+                renderLargerThumbnail: false
+            }
+        };
+
+        let messagePayload;
+        if (finalImage && fs.existsSync(finalImage)) {
+            messagePayload = {
+                image: fs.readFileSync(finalImage),
+                caption: helpText,
+                contextInfo
+            };
+        } else {
+            messagePayload = {
+                text: helpText,
+                contextInfo
+            };
         }
-    };
 
-    let messagePayload;
-    if (fs.existsSync(menuImagePath)) {
-        messagePayload = {
-            image: fs.readFileSync(menuImagePath),
-            caption: helpText,
-            contextInfo
-        };
-    } else {
-        messagePayload = {
-            text: helpText,
-            contextInfo
-        };
+        await sock.sendMessage(chatId, messagePayload, { quoted: message });
     }
-
-    await sock.sendMessage(chatId, messagePayload, { quoted: message });
 }
 
 module.exports = helpCommand;

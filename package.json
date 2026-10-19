@@ -1,7 +1,7 @@
 {
-  "name": "zoxerminibot",
-  "version": "1.0.0",
-  "description": "Ultra-Fast Lightweight Mini WhatsApp Bot",
+  "name": "ghost-mbot",
+  "version": "2.0.0",
+  "description": "Ghost MBot - Advanced Interactive Button & Multi-User Automation Engine",
   "main": "main.js",
   "scripts": {
     "start": "node main.js"
@@ -9,13 +9,15 @@
   "keywords": [
     "whatsapp-bot",
     "baileys",
-    "mini-bot"
+    "ghost-bot",
+    "interactive-buttons"
   ],
-  "author": "Sarukh Zoxer",
+  "author": "Ghost Team",
   "license": "ISC",
   "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "@hapi/boom": "^10.0.1",
+    "@ryuu-reinzz/button-helper": "^2.2.3",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "awesome-phonenumber": "^5.9.0",
     "chalk": "^4.1.2",
     "dotenv": "^16.4.5",

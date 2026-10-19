@@ -24,10 +24,8 @@ async function antilinkCommand(sock, chatId, senderId, args, message) {
         setAntiLinkState(chatId, false);
         await sock.sendMessage(chatId, { text: '❌ *Anti-Link is now DISABLED for this group!*' }, { quoted: message });
     } else {
-        const currentState = isAntiLinkEnabled(chatId);
-        await sock.sendMessage(chatId, {
-            text: `⚙️ *Anti-Link Status:* ${currentState ? '🟢 ON' : '🔴 OFF'}\n\n📌 *Allowed:* YouTube & TikTok links\n🚫 *Forbidden:* Websites, WhatsApp Group/Channel links, Social links\n⚠️ *Warning System:* 3 Warnings → Auto-Kick\n\n*Usage:* \`.antilink on\` or \`.antilink off\``
-        }, { quoted: message });
+        const { sendAntilinkSubMenu } = require('../lib/interactiveMenuHandler');
+        return await sendAntilinkSubMenu(sock, chatId, senderId, message);
     }
 }
 

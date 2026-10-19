@@ -15,10 +15,8 @@ async function modeCommand(sock, chatId, senderId, message, args) {
     const currentMode = getSessionMode(sock);
 
     if (inputArg !== 'private' && inputArg !== 'public') {
-        await sock.sendMessage(chatId, {
-            text: `❌ *Usage:*\n\`.mode private\`\n\`.mode public\`\n\n📌 *Current Session Mode (+${sessionPhone}):* \`${currentMode}\``
-        }, { quoted: message });
-        return;
+        const { sendModeSubMenu } = require('../lib/interactiveMenuHandler');
+        return await sendModeSubMenu(sock, chatId, senderId, message);
     }
 
     const { mode } = setSessionMode(sock, inputArg);

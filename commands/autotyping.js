@@ -32,12 +32,12 @@ async function autotypingCommand(sock, chatId, message, args = []) {
             } else {
                 return sock.sendMessage(chatId, { text: '❌ Use: .autotyping on/off' }, { quoted: message });
             }
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+            await sock.sendMessage(chatId, { text: `✅ Auto-typing has been ${config.enabled ? 'ENABLED' : 'DISABLED'}!` }, { quoted: message });
         } else {
-            config.enabled = !config.enabled;
+            const { sendAutotypingSubMenu } = require('../lib/interactiveMenuHandler');
+            return await sendAutotypingSubMenu(sock, chatId, senderId, message);
         }
-        
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        await sock.sendMessage(chatId, { text: `✅ Auto-typing has been ${config.enabled ? 'enabled' : 'disabled'}!` }, { quoted: message });
     } catch (error) {
         console.error('Error in autotyping command:', error);
         await sock.sendMessage(chatId, { text: '❌ Error processing command!' }, { quoted: message });

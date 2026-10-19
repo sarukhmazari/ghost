@@ -45,8 +45,8 @@ async function adminlockCommand(sock, chatId, senderId, args, message) {
             setLockData(data);
             await sock.sendMessage(chatId, { text: '🔓 *Admin Lock is now OFF.*' }, { quoted: message });
         } else {
-            const status = !!data[chatId];
-            await sock.sendMessage(chatId, { text: `🛡️ *Admin Lock Status:* ${status ? 'ON' : 'OFF'}\nUse: .adminlock on/off` }, { quoted: message });
+            const { sendAdminlockSubMenu } = require('../lib/interactiveMenuHandler');
+            return await sendAdminlockSubMenu(sock, chatId, senderId, message);
         }
     } catch (error) {
         console.error('Error in adminlock command:', error);

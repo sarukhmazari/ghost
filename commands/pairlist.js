@@ -45,7 +45,7 @@ async function pairlistCommand(sock, chatId, senderId, message, args = [], comma
             }, { quoted: message });
         }
 
-        let text = `╭━━━〔 📱 *ZOXER PAIR LIST* 〕━━━╮\n\n`;
+        let text = `╭━━━〔 📱 *GHOST PAIR LIST* 〕━━━╮\n\n`;
         sessionsList.forEach((s, idx) => {
             const label = s.isMain ? '👑 Root Main Bot' : '📱 Linked Session';
             const statusIcon = s.status === 'CONNECTED' ? '🟢 Online' : '🔴 Offline';
