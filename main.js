@@ -63,7 +63,8 @@ const {
     sendToolMenu,
     sendOwnerMenu,
     sendDownloadMenu,
-    sendGamesMenu
+    sendGamesMenu,
+    resolveButtonActionFromText
 } = require('./lib/interactiveMenuHandler');
 const { isFlowActive } = require('./lib/interactiveFlow');
 
@@ -213,19 +214,11 @@ async function handleMessages(sock, m) {
         return;
     }
 
-    // Number shortcuts (1-6, 0) for direct menu navigation (especially useful when messaging yourself)
+    // Button click text fallback & number shortcuts (1-6, 0)
     const trimmedInput = rawText.trim();
-    const numberCategoryMap = {
-        '1': 'cat_group',
-        '2': 'cat_admin',
-        '3': 'cat_tool',
-        '4': 'cat_owner',
-        '5': 'cat_download',
-        '6': 'cat_games',
-        '0': 'ghost_menu:main'
-    };
-    if (numberCategoryMap[trimmedInput]) {
-        await handleInteractiveAction(sock, chatId, senderId, msg, numberCategoryMap[trimmedInput]);
+    const buttonAction = resolveButtonActionFromText(trimmedInput);
+    if (buttonAction) {
+        await handleInteractiveAction(sock, chatId, senderId, msg, buttonAction);
         return;
     }
 
