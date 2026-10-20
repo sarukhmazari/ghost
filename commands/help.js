@@ -1,56 +1,65 @@
 const path = require('path');
 const fs = require('fs');
 const settings = require('../settings');
-const { sendMainMenu } = require('../lib/interactiveMenuHandler');
 
 async function helpCommand(sock, chatId, message) {
-    const senderId = message.key.participant || (message.key.fromMe ? (sock.user?.id || chatId) : chatId);
-
     try {
-        // Send the native interactive button & list menu
-        await sendMainMenu(sock, chatId, senderId, message);
-    } catch (interactiveError) {
-        console.error('Interactive menu error, falling back to text menu:', interactiveError);
-
         const helpText = `
-┏━━〔 👻 𝗚𝗛𝗢𝗦𝗧 𝗠𝗕𝗢𝗧 〕━━┓
-┃ 📱 Owner : 923232391033
-┃ ⚡ Engine: Ghost Core
-┗━━━━━━━━━━━━━━━━━━━━┛
+╭━━━〔 👻 𝗚𝗛𝗢𝗦𝗧 𝗠𝗕𝗢𝗧 〕━━━╮
 
-🤖 *AUTOMATION*
-• .autoreact <on/off>
-• .autoread <on/off>
-• .autotyping <on/off>
-• .antidelete <on/off>
+┏━━〔 ⚙️ 𝗔𝗨𝗧𝗢𝗠𝗔𝗧𝗜𝗢𝗡 〕
+┃
+┃  ◉ .autoreact <on/off>
+┃  ◉ .autoread <on/off>
+┃  ◉ .autotyping <on/off>
+┃  ◉ .antidelete <on/off>
+┃
+┗━━━━━━━━━━━━━━━━━━━━━━
 
-👥 *GROUP*
-• .tagall
-• .hidetag [text/reply]
-• .mute [minutes]
-• .unmute
-• .antilink <on/off>
-• .kick [@user]
+┏━━〔 👁️ 𝗠𝗘𝗗𝗜𝗔 & 𝗣𝗥𝗜𝗩𝗔𝗖𝗬 〕
+┃
+┃  ◉ .vv / .viewonce [public/private]
+┃  ◉ .dp [@user / reply]
+┃  ◉ ❤️ Secret View-Once Grab
+┃
+┗━━━━━━━━━━━━━━━━━━━━━━
 
-🛡️ *ADMIN*
-• .mode <private/public>
-• .adminlock <on/off>
-• .ban [@user]
-• .unban [@user]
+┏━━〔 👥 𝗚𝗥𝗢𝗨𝗣 𝗠𝗔𝗡𝗔𝗚𝗘𝗠𝗘𝗡𝗧 〕
+┃
+┃  ◉ .tagall
+┃  ◉ .hidetag [message / reply]
+┃  ◉ .mute [minutes]
+┃  ◉ .unmute
+┃  ◉ .kick [@user / reply]
+┃  ◉ .antilink <on/off>
+┃
+┗━━━━━━━━━━━━━━━━━━━━━━
 
-📥 *MEDIA*
-• .vv / .viewonce
-• .dp [@user]
-• ❤️ (Reply to View-Once)
+┏━━〔 🛡️ 𝗔𝗗𝗠𝗜𝗡 & 𝗖𝗢𝗡𝗧𝗥𝗢𝗟 〕
+┃
+┃  ◉ .mode <private/public>
+┃  ◉ .adminlock <on/off>
+┃  ◉ .ban [@user / reply]
+┃  ◉ .unban [@user / reply]
+┃
+┗━━━━━━━━━━━━━━━━━━━━━━
 
-👑 *SYSTEM & OWNER*
-• .owner (Contact 923232391033)
-• .pair <number>
-• .pairlist
-• .unpair <number>
-• .ping
-• .status
-• .jid`.trim();
+┏━━〔 📡 𝗦𝗬𝗦𝗧𝗘𝗠 & 𝗢𝗪𝗡𝗘𝗥 〕
+┃
+┃  ◉ .pair <number>
+┃  ◉ .pairlist / .pairs
+┃  ◉ .unpair <number>
+┃  ◉ .ping
+┃  ◉ .status
+┃  ◉ .owner
+┃  ◉ .jid
+┃  ◉ .menu / .help
+┃
+┗━━━━━━━━━━━━━━━━━━━━━━
+
+╰━━━〔 ⚡ 𝗨𝗟𝗧𝗥𝗔-𝗙𝗔𝗦𝗧 〕━━━╯
+       𝗥𝗘𝗦𝗣𝗢𝗡𝗦𝗘 𝗘𝗡𝗚𝗜𝗡𝗘
+          𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗯𝘆 𝗚𝗛𝗢𝗦𝗧`.trim();
 
         const menuImagePath = path.join(__dirname, '../Ghost.png');
         const fallbackImagePath = path.join(__dirname, '../ghost.jpg');
@@ -89,6 +98,11 @@ async function helpCommand(sock, chatId, message) {
         }
 
         await sock.sendMessage(chatId, messagePayload, { quoted: message });
+    } catch (err) {
+        console.error('Help command error:', err.message);
+        try {
+            await sock.sendMessage(chatId, { text: '👻 *Ghost MBot*\nType .help to view available commands.' }, { quoted: message });
+        } catch (e) { }
     }
 }
 

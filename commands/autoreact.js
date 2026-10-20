@@ -41,13 +41,14 @@ async function autoreactCommand(sock, chatId, message, args = []) {
             } else {
                 return sock.sendMessage(chatId, { text: '❌ Use: .autoreact on/off' }, { quoted: message });
             }
-            if (!config.reactEmojis) config.reactEmojis = defaultData.reactEmojis;
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-            await sock.sendMessage(chatId, { text: `✅ Auto-react is now ${config.autoreact ? 'ENABLED' : 'DISABLED'}` }, { quoted: message });
         } else {
-            const { sendAutoreactSubMenu } = require('../lib/interactiveMenuHandler');
-            return await sendAutoreactSubMenu(sock, chatId, senderId, message);
+            config.autoreact = !config.autoreact;
         }
+
+        if (!config.reactEmojis) config.reactEmojis = defaultData.reactEmojis;
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+        await sock.sendMessage(chatId, { text: `✅ Auto-react is now ${config.autoreact ? 'ENABLED' : 'DISABLED'}` }, { quoted: message });
     } catch (error) {
         console.error(error);
         await sock.sendMessage(chatId, { text: '❌ Error occurred!' }, { quoted: message });

@@ -10,8 +10,10 @@ async function antideleteCommand(sock, chatId, senderId, args, message) {
         setAntiDeleteState(false);
         await sock.sendMessage(chatId, { text: '❌ *Anti-Delete is now DISABLED!*' }, { quoted: message });
     } else {
-        const { sendAntideleteSubMenu } = require('../lib/interactiveMenuHandler');
-        return await sendAntideleteSubMenu(sock, chatId, senderId, message);
+        const currentState = getAntiDeleteState();
+        await sock.sendMessage(chatId, {
+            text: `⚙️ *Anti-Delete Status:* ${currentState ? '🟢 ON' : '🔴 OFF'}\n\n*Usage:* \`.antidelete on\` or \`.antidelete off\``
+        }, { quoted: message });
     }
 }
 

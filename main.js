@@ -52,23 +52,8 @@ const { storeMessage, handleMessageRevoke } = require('./lib/antiDelete');
 const { handleAntiLink } = require('./lib/antiLink');
 const { getSessionMode, isSessionOwner } = require('./lib/modeManager');
 
-// Interactive System imports
-const { extractInteractiveSelection } = require('./lib/interactiveHelper');
-const {
-    handleInteractiveAction,
-    handleGuidedFlowInput,
-    sendMainMenu,
-    sendGroupMenu,
-    sendAdminMenu,
-    sendToolMenu,
-    sendOwnerMenu,
-    sendDownloadMenu,
-    sendGamesMenu,
-    resolveButtonActionFromText
-} = require('./lib/interactiveMenuHandler');
-const { isFlowActive } = require('./lib/interactiveFlow');
-
 // Command imports
+const helpCommand = require('./commands/help');
 const { autoreactCommand, addAutoReaction } = require('./commands/autoreact');
 const { autoreadCommand, handleAutoread } = require('./commands/autoread');
 const { autotypingCommand, handleAutotypingForMessage } = require('./commands/autotyping');
@@ -105,7 +90,7 @@ async function handleGroupParticipantUpdate(sock, update) {
     }
 }
 
-// Universal Message handler (Optimized for Millisecond speed, interactive buttons & commands)
+// Universal Message handler (Optimized for Millisecond speed & commands)
 async function handleMessages(sock, m) {
     const startTime = Date.now();
     const msg = m.messages[0];
@@ -125,23 +110,6 @@ async function handleMessages(sock, m) {
 
     // Auto-react handler
     await addAutoReaction(sock, msg);
-
-    // 1. Process Native WhatsApp Interactive Selections (Buttons, Lists, Poll Votes)
-    const interactiveAction = extractInteractiveSelection(msg, senderId);
-    if (interactiveAction) {
-        // Skip if sender is banned (unless action is unban)
-        if (isBanned(senderId) && !interactiveAction.includes('unban')) return;
-
-        // Check per-session mode (private vs public)
-        const sessionMode = getSessionMode(sock);
-        const isOwner = await isSessionOwner(sock, senderId, msg);
-        if (sessionMode === 'private' && !isOwner) {
-            return;
-        }
-
-        await handleInteractiveAction(sock, chatId, senderId, msg, interactiveAction);
-        return;
-    }
 
     const getMessageText = (m) => {
         const message = m?.message;
@@ -176,12 +144,6 @@ async function handleMessages(sock, m) {
         return;
     }
 
-    // 2. Process Guided Interactive Flows (e.g. user entering phone number or announcement without command syntax)
-    if (isFlowActive(chatId, senderId) && rawText && !rawText.startsWith('.')) {
-        const flowHandled = await handleGuidedFlowInput(sock, chatId, senderId, msg, rawText);
-        if (flowHandled) return;
-    }
-
     // Autotyping status for non-commands
     if (!rawText.startsWith('.')) {
         handleAutotypingForMessage(sock, chatId);
@@ -211,14 +173,6 @@ async function handleMessages(sock, m) {
                 }
             } catch (e) { }
         }
-        return;
-    }
-
-    // Button click text fallback & number shortcuts (1-6, 0)
-    const trimmedInput = rawText.trim();
-    const buttonAction = resolveButtonActionFromText(trimmedInput);
-    if (buttonAction) {
-        await handleInteractiveAction(sock, chatId, senderId, msg, buttonAction);
         return;
     }
 
@@ -325,23 +279,7 @@ async function handleMessages(sock, m) {
                 break;
             case 'help':
             case 'menu':
-                await sendMainMenu(sock, chatId, senderId, msg);
-                break;
-            case 'groupmenu':
-            case 'group':
-                await sendGroupMenu(sock, chatId, senderId, msg);
-                break;
-            case 'adminmenu':
-            case 'admin':
-                await sendAdminMenu(sock, chatId, senderId, msg);
-                break;
-            case 'toolmenu':
-            case 'tool':
-            case 'tools':
-                await sendToolMenu(sock, chatId, senderId, msg);
-                break;
-            case 'ownermenu':
-                await sendOwnerMenu(sock, chatId, senderId, msg);
+                await helpCommand(sock, chatId, msg);
                 break;
             case 'owner':
                 await ownerCommand(sock, chatId, senderId, msg);
@@ -360,16 +298,6 @@ async function handleMessages(sock, m) {
                 } catch (err) {
                     await sock.sendMessage(chatId, { text: `❌ Could not set DP: ${err.message}` }, { quoted: msg });
                 }
-                break;
-            case 'downloadmenu':
-            case 'downloader':
-            case 'download':
-                await sendDownloadMenu(sock, chatId, senderId, msg);
-                break;
-            case 'gamesmenu':
-            case 'games':
-            case 'game':
-                await sendGamesMenu(sock, chatId, senderId, msg);
                 break;
             default:
                 // Ignore unknown commands silently for speed
@@ -432,7 +360,7 @@ async function startGhostBot(isReconnect = false) {
         console.log(chalk.bold.cyan(`
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃       👻 GHOST WHATSAPP BOT INITIALIZING 👻  ┃
-┃   Interactive Button & Multi-Session Engine ┃
+┃    Ultra-Fast Multi-Session WhatsApp Engine ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 `));
     }

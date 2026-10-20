@@ -1,5 +1,4 @@
 const settings = require('../settings');
-const { sendButtons } = require('../lib/interactiveHelper');
 
 async function ownerCommand(sock, chatId, senderId, message) {
     try {
@@ -15,7 +14,7 @@ async function ownerCommand(sock, chatId, senderId, message) {
 ┗━━━━━━━━━━━━━━━━━━━━┛
 
 Need assistance, pairing, or custom setup?
-Contact the owner directly or tap a button below:`.trim();
+Contact the owner directly via the contact card above!`.trim();
 
         // Send contact vCard
         const vcard = 'BEGIN:VCARD\n'
@@ -36,19 +35,7 @@ Contact the owner directly or tap a button below:`.trim();
             console.error('Failed to send vCard contact:', contactErr.message);
         }
 
-        // Send Interactive buttons
-        const buttons = [
-            { id: 'ghost_flow:pair', text: '🔑 Pair Session' },
-            { id: 'ghost_action:pairlist', text: '📱 Pair List' },
-            { id: 'ghost_menu:main', text: '🏠 Main Menu' }
-        ];
-
-        await sendButtons(sock, chatId, {
-            title: "〔 👑 𝗚𝗛𝗢𝗦𝗧 𝗢𝗪𝗡𝗘𝗥 〕",
-            text: ownerText,
-            footer: "Ghost MBot • Owner Support",
-            buttons
-        }, message);
+        await sock.sendMessage(chatId, { text: ownerText }, { quoted: message });
 
     } catch (error) {
         console.error('Owner command error:', error);

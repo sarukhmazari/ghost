@@ -32,12 +32,12 @@ async function autoreadCommand(sock, chatId, message, args = []) {
             } else {
                 return sock.sendMessage(chatId, { text: '❌ Use: .autoread on/off' }, { quoted: message });
             }
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-            await sock.sendMessage(chatId, { text: `✅ Auto-read is now ${config.enabled ? 'ENABLED' : 'DISABLED'}!` }, { quoted: message });
         } else {
-            const { sendAutoreadSubMenu } = require('../lib/interactiveMenuHandler');
-            return await sendAutoreadSubMenu(sock, chatId, senderId, message);
+            config.enabled = !config.enabled;
         }
+        
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        await sock.sendMessage(chatId, { text: `✅ Auto-read is now ${config.enabled ? 'ENABLED' : 'DISABLED'}!` }, { quoted: message });
     } catch (error) {
         console.error('Error in autoread command:', error);
         await sock.sendMessage(chatId, { text: '❌ Error processing command!' }, { quoted: message });
